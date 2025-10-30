@@ -3,9 +3,11 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
+import cors from 'cors';
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 // Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
