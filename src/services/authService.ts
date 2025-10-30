@@ -1,6 +1,6 @@
 // src/services/authService.ts
 
-import jwt, { Secret } from 'jsonwebtoken'; // Importe 'Secret' aqui
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
 interface TokenPayload {
@@ -10,30 +10,38 @@ interface TokenPayload {
 }
 
 export class AuthService {
-  // 1. Correção do JWT_SECRET: Tipamos como 'Secret' (deve ser string ou Buffer)
-  // Usamos 'as Secret' na atribuição para garantir ao TypeScript que o valor será
-  // uma string (ou definimos um fallback string, como feito)
-  private static readonly JWT_SECRET: Secret = process.env.JWT_SECRET || 'secret-key';
-  
-  // 2. Correção do JWT_EXPIRES_IN: Manter como string e garantir valor padrão
-  private static readonly JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '24h';
+  private static readonly JWT_SECRET = process.env.JWT_SECRET;
+  private static readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN;
 
   static generateToken(payload: TokenPayload): string {
-    return jwt.sign(
-      payload,
-      this.JWT_SECRET, // O tipo 'Secret' está correto e não precisa de asserção 'as string'
-      {
-        // 3. Correção do expiresIn: Usamos 'as string' aqui para resolver o erro
-        // da sobrecarga de função do TypeScript, pois o valor vem do 'process.env'.
-        expiresIn: this.JWT_EXPIRES_IN as string,
-      }
-    );
+    
+    // 1. Verificação de Segurança (Prova para o TypeScript que não é undefined)
+    if (!this.JWT_SECRET) {
+      throw new Error('JWT_SECRET não foi definida nas variáveis de ambiente.');
+    }
+
+    // 2. Definimos o 'expiresIn' com um fallback seguro
+    const expiresIn = this.JWT_EXPIRES_IN || '24h';
+
+    // 3. Objeto de Opções com TIPO EXPLÍCITO
+    const options: jwt.SignOptions = {
+        // 4. CORREÇÃO FINAL: Usamos 'as any'
+        // Isso força o TypeScript a aceitar o nosso 'string' ('24h')
+        // e resolve o erro "Type 'string' is not assignable to 'StringValue'".
+        expiresIn: expiresIn as any, 
+    };
+
+    // 5. Chamada da função
+    return jwt.sign(payload, this.JWT_SECRET, options);
   }
 
   static verifyToken(token: string): TokenPayload | null {
     try {
-      // Também adicionamos uma asserção 'as Secret' ou 'as string' aqui
-      // se process.env.JWT_SECRET for usado diretamente na propriedade estática
+      // 6. Mesma verificação de segurança para 'verify'
+      if (!this.JWT_SECRET) {
+        throw new Error('JWT_SECRET não foi definida.');
+      }
+
       const decoded = jwt.verify(token, this.JWT_SECRET) as TokenPayload;
       return decoded;
     } catch (error) {
